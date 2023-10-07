@@ -1,3 +1,5 @@
-# calculo_imc
+# Calculo IMC na plataforma Dio
 
-A new Flutter project.
+### Desafios
+
+Todos os desafios estão em branchs separadas para melhor leitura e compreensao do que foi proposto.
