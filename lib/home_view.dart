@@ -1,5 +1,6 @@
 import 'package:calculo_imc/imc_model.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -11,7 +12,9 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final heightEC = TextEditingController();
   final widthEC = TextEditingController();
-  List<ImcModel> listImc = [];
+  final nameEC = TextEditingController();
+  static const String key = 'imc_key';
+  var box = Hive.openBox(key);
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +41,15 @@ class _HomeViewState extends State<HomeView> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   floatingLabelBehavior: FloatingLabelBehavior.always,
-                  labelText: 'Altura a altura',
+                  labelText: 'Infome a altura',
+                ),
+              ),
+              TextField(
+                controller: nameEC,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  labelText: 'Informe o nome (Opcional)',
                 ),
               ),
               const SizedBox(height: 10),
@@ -47,14 +58,28 @@ class _HomeViewState extends State<HomeView> {
                   Expanded(
                     child: ElevatedButton(
                       child: const Text('CALCULAR'),
-                      onPressed: () {
+                      onPressed: () async {
+                        final box = await Hive.openBox(key);
+
+                        final name = nameEC.text;
+                        final weight = double.parse(widthEC.text);
+                        final height = double.parse(heightEC.text);
+
+                        final model = ImcModel(
+                          name: name.isNotEmpty ? name : null,
+                          weight: weight,
+                          height: height,
+                        );
+                        final imc = model.verifyImc(model.calcularIMC());
+                        final imcResult = model.calcularIMC();
+
                         setState(() {
-                          listImc.add(
-                            ImcModel(
-                              height: double.parse(heightEC.text),
-                              weight: double.parse(widthEC.text),
-                            ),
+                          model.copyWith(
+                            imc: imc,
+                            imcResult: imcResult,
                           );
+
+                          box.add(model);
                         });
                       },
                     ),
@@ -62,38 +87,51 @@ class _HomeViewState extends State<HomeView> {
                 ],
               ),
               const SizedBox(height: 10),
-              GridView.builder(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 180,
-                ),
-                shrinkWrap: true,
-                itemCount: listImc.length,
-                padding: const EdgeInsets.all(12),
-                itemBuilder: (context, index) {
-                  final item = listImc[index];
-                  final imc = item.calcularIMC();
+              FutureBuilder(
+                future: Hive.openBox(key),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    final box = Hive.box(key);
 
-                  return Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 35,
-                        child: FittedBox(
-                          child: Text(
-                            "${imc.toStringAsFixed(4)} IMC",
-                          ),
-                        ),
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 180,
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text("Altura: ${item.height}"),
-                          const SizedBox(width: 10),
-                          Text("Peso: ${item.weight}"),
-                        ],
-                      ),
-                      Text(item.verifyImc(imc)),
-                    ],
+                      padding: const EdgeInsets.all(12),
+                      itemCount: box.length,
+                      itemBuilder: (context, index) {
+                        final data = box.getAt(index) as ImcModel;
+                        final imc = data.calcularIMC();
+
+                        return Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 35,
+                              child: FittedBox(
+                                child: Text(
+                                  "${imc.toStringAsFixed(4)} IMC",
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text("Altura: ${data.height}"),
+                                const SizedBox(width: 10),
+                                Text("Peso: ${data.weight}"),
+                              ],
+                            ),
+                            Text(data.verifyImc(imc)),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                  return const Center(
+                    child: CircularProgressIndicator(),
                   );
                 },
               ),

@@ -1,12 +1,33 @@
-class ImcModel {
+import 'package:hive/hive.dart';
+
+part 'imc_model.g.dart';
+
+@HiveType(typeId: 0)
+class ImcModel extends HiveObject {
   ImcModel({
-    this.weight,
-    this.height,
+    required this.weight,
+    required this.height,
+    this.imc,
+    this.imcResult,
+    this.name = "Não informado",
   });
 
-  double? weight;
+
+  @HiveField(0)
   double? height;
 
+  @HiveField(1)
+  String? name;
+
+  @HiveField(2)
+  String? imc;
+
+  @HiveField(3)
+  double? imcResult;
+
+  @HiveField(4)
+  double? weight;
+  
   double calcularIMC() {
     return weight! / (height! * height!);
   }
@@ -32,5 +53,21 @@ class ImcModel {
     }
 
     return message;
+  }
+
+  ImcModel copyWith({
+    double? weight,
+    double? height,
+    String? name,
+    String? imc,
+    double? imcResult,
+  }) {
+    return ImcModel(
+      weight: weight ?? this.weight,
+      height: height ?? this.height,
+      imc: imc ?? this.imc,
+      imcResult: imcResult ?? this.imcResult,
+      name: name ?? this.name,
+    );
   }
 }
